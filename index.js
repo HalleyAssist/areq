@@ -10,7 +10,7 @@ function Areq(emitter, areqTimeout) {
 }
 
 Areq.prototype.changeDefaultTimeout = function (time) {
-    if (typeof time !== 'numner' || time < 1)
+    if (typeof time !== 'number' || time < 1)
         throw new TypeError('Time for timeout should be a number and greater than 1ms.');
 
     this._areqTimeout = time;
