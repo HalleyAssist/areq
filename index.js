@@ -58,7 +58,7 @@ Areq.prototype.register = function (evt, deferred, listener, time, once = true) 
                 clearTimeout(p.timeout)
                 delete p.timeout
             }
-        }.bind(this))
+        }.bind(this)).catch(function(){})
     }
 
     return registered;
