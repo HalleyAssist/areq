@@ -27,7 +27,9 @@ Areq.prototype.isEventPending = function (evt) {
     return !!this._pendings[evt];
 };
 
-Areq.prototype.register = function (evt, deferred, listener, time, once = true) {
+Areq.prototype.register = function (evt, deferred, listener, time, once) {
+    once = once === undefined ? true : once
+
     var registered = false,
         areqTimeout = time || this._areqTimeout;
 
