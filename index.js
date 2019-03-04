@@ -30,14 +30,14 @@ Areq.prototype.isEventPending = function (evt) {
 Areq.prototype.register = function (evt, deferred, listener, time, once) {
     once = once === undefined ? true : once
 
-    var registered = false,
-        areqTimeout = time || this._areqTimeout;
+    var areqTimeout = time || this._areqTimeout,
+        record;
 
     if (typeof listener !== 'function')
         throw new TypeError('listener should be a function.');
 
-    if (this.getRecord(evt)) {  // someone waiting same event, throw if evt is not a string
-        registered = false;
+    if (record = this.getRecord(evt)) {  // someone waiting same event, throw if evt is not a string
+        record.deferred.push(deferred)
     } else {
         if (!deferred.hasOwnProperty('promise'))
             throw new TypeError('deferred should be a deferred object of Promise.');
@@ -49,21 +49,20 @@ Areq.prototype.register = function (evt, deferred, listener, time, once) {
         }
         this._pendings[evt] = {
             listener: listener,
-            deferred: deferred
+            deferred: [deferred]
         }
-        registered = true;
-
-        this.setTimeout(evt, areqTimeout)
-        deferred.promise.finally(function(){
-            var p = this._pendings[evt]
-            if(p && p.timeout){
-                clearTimeout(p.timeout)
-                delete p.timeout
-            }
-        }.bind(this)).catch(function(){})
     }
 
-    return registered;
+    this.setTimeout(evt, areqTimeout)
+    deferred.promise.finally(function(){
+        var p = this._pendings[evt]
+        if(p && p.timeout){
+            clearTimeout(p.timeout)
+            delete p.timeout
+        }
+    }.bind(this)).catch(function(){})
+
+    return true;
 };
 
 Areq.prototype.setTimeout = function(evt, areqTimeout){
@@ -101,8 +100,11 @@ Areq.prototype.deregister = function (evt) {
 Areq.prototype.resolve = function (evt, value) {
     var rec = this.getRecord(evt),
         deferred = rec ? rec.deferred : null;
-    if (deferred && deferred.promise.isPending())
-        deferred.resolve(value);
+    if (deferred) {
+        for(let d of deferred){
+            if(d.promise.isPending()) d.resolve(value);
+        }
+    }
 
     this.deregister(evt);
 };
@@ -110,8 +112,12 @@ Areq.prototype.resolve = function (evt, value) {
 Areq.prototype.reject = function (evt, err) {
     var rec = this.getRecord(evt),
         deferred = rec ? rec.deferred : null;
-    if (deferred && deferred.promise.isPending())
-        deferred.reject(err);
+        
+    if (deferred) {
+        for(let d of deferred){
+            if(d.promise.isPending()) d.reject(err);
+        }
+    }
 
     this.deregister(evt);
 };
